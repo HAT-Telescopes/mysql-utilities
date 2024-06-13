@@ -374,7 +374,7 @@ def _check_option_defaults(options):
             options[opt_name] = _DEFAULT_OPTIONS[opt_name]
 
 
-def database_compare(server1_val, server2_val, db1, db2, options):
+def database_compare(server1_val, server2_val, db1, db2, options, include_tables = []):
     """Perform a consistency check among two databases
 
     This method performs a database consistency check among two databases which
@@ -447,6 +447,17 @@ def database_compare(server1_val, server2_val, db1, db2, options):
                                         db1_conn, db2_conn, options)
     success = not differs
 
+    drop_values = []
+    if include_tables:
+        for i, item in enumerate(in_both):
+            obj_type = item[0]
+            if obj_type == 'TABLE':
+                if item[1][0] not in include_tables:
+                    drop_values.append(i)
+
+    for i in sorted(drop_values, reverse=True):
+        in_both.pop(i)
+
     reporter = _CompareDBReport(options)
     reporter.print_heading()
 
@@ -513,7 +524,7 @@ def database_compare(server1_val, server2_val, db1, db2, options):
     return success
 
 
-def compare_all_databases(server1_val, server2_val, exclude_list, options):
+def compare_all_databases(server1_val, server2_val, exclude_list, options, include_tables = []):
     """Perform a consistency check among all common databases on the servers
 
     This method gets all databases from the servers, prints any missing
@@ -595,7 +606,7 @@ def compare_all_databases(server1_val, server2_val, exclude_list, options):
         success = None
     for db in common_dbs:
         try:
-            res = database_compare(server1_val, server2_val, db, db, options)
+            res = database_compare(server1_val, server2_val, db, db, options, include_tables=include_tables)
             if not res:
                 success = False
             if not quiet:
